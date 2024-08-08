@@ -16,7 +16,13 @@ where
 
     write!(dst, "[")?;
 
-    for (i, rule) in rules.into_iter().enumerate() {
+    // Ignore inverse rules that have if- and unless-domain set,
+    // since they're unreasonable to get working with WebKit.
+    let rules = rules.into_iter().filter(|rule| {
+        rule.if_domains.is_empty() || rule.unless_domains.is_empty() || !rule.inverse
+    });
+
+    for (i, rule) in rules.enumerate() {
         for j in 0..rule.url_regexes.len() {
             if i != 0 || j != 0 {
                 write!(dst, ", ")?;
@@ -36,12 +42,6 @@ fn write_rule<W>(dst: &mut W, rule: &Rule, regex_index: usize) -> Result<(), Err
 where
     W: Write,
 {
-    // Ignore inverse rules that have if- and unless-domain set,
-    // since they're unreasonable to get working with WebKit.
-    if !rule.if_domains.is_empty() && !rule.unless_domains.is_empty() && rule.inverse {
-        return Ok(());
-    }
-
     write!(dst, "{{\n\t\"trigger\": {{\n\t\t\"url-filter\": ")?;
     write_json_string(dst, &rule.url_regexes[regex_index])?;
 
