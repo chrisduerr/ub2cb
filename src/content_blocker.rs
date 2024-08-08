@@ -17,11 +17,13 @@ where
     write!(dst, "[")?;
 
     for (i, rule) in rules.into_iter().enumerate() {
-        if i != 0 {
-            write!(dst, ", ")?;
-        }
+        for j in 0..rule.url_regexes.len() {
+            if i != 0 || j != 0 {
+                write!(dst, ", ")?;
+            }
 
-        write_rule(dst, rule)?;
+            write_rule(dst, &rule, j)?;
+        }
     }
 
     writeln!(dst, "]")?;
@@ -30,7 +32,7 @@ where
 }
 
 /// Write one rule to the destination.
-fn write_rule<W>(dst: &mut W, rule: Rule) -> Result<(), Error>
+fn write_rule<W>(dst: &mut W, rule: &Rule, regex_index: usize) -> Result<(), Error>
 where
     W: Write,
 {
@@ -41,7 +43,7 @@ where
     }
 
     write!(dst, "{{\n\t\"trigger\": {{\n\t\t\"url-filter\": ")?;
-    write_json_string(dst, &rule.url_regex)?;
+    write_json_string(dst, &rule.url_regexes[regex_index])?;
 
     if rule.case_sensitive {
         write!(dst, ",\n\t\t\"url-filter-is-case-sensitive\": true")?;
@@ -100,7 +102,7 @@ where
         rule.if_domains = mem::take(&mut rule.unless_domains);
         rule.inverse = true;
 
-        write_rule(dst, rule)?;
+        write_rule(dst, &rule, regex_index)?;
     }
 
     Ok(())
@@ -327,5 +329,21 @@ mod tests {
         assert_eq!(rules.len(), 2);
         assert_eq!(rules[0].trigger.url_filter, "normal".to_string());
         assert_eq!(rules[1].trigger.url_filter, "exception".to_string());
+    }
+
+    #[test]
+    fn multi_output_rule() {
+        let mut rule = Rule::new("example.org");
+        rule.url_regexes.push("github.com".into());
+        let rules = vec![rule];
+
+        let mut buffer = Cursor::new(Vec::new());
+        write_json(&mut buffer, rules).unwrap();
+        let output = String::from_utf8(buffer.into_inner()).unwrap();
+
+        let rules: Vec<CBRule> = serde_json::from_str(&output).unwrap();
+        assert_eq!(rules.len(), 2);
+        assert_eq!(rules[0].trigger.url_filter, "example.org".to_string());
+        assert_eq!(rules[1].trigger.url_filter, "github.com".to_string());
     }
 }

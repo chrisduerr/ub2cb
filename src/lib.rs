@@ -8,7 +8,7 @@ pub mod ublock;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Rule {
-    url_regex: String,
+    url_regexes: Vec<String>,
 
     selector: Option<String>,
 
@@ -31,7 +31,7 @@ impl Rule {
     fn new(url_regex: impl Into<String>) -> Self {
         Self {
             resource_types: ResourceTypes::empty(),
-            url_regex: url_regex.into(),
+            url_regexes: vec![url_regex.into()],
             case_sensitive: Default::default(),
             unless_domains: Default::default(),
             load_context: Default::default(),
@@ -67,7 +67,7 @@ impl Ord for Rule {
 
         // Otherwise we fall back to the other fields.
         (
-            &self.url_regex,
+            &self.url_regexes,
             &self.resource_types,
             &self.load_type,
             &self.load_type,
@@ -76,7 +76,7 @@ impl Ord for Rule {
             &self.case_sensitive,
         )
             .cmp(&(
-                &other.url_regex,
+                &other.url_regexes,
                 &other.resource_types,
                 &other.load_type,
                 &other.load_type,
