@@ -45,7 +45,7 @@ fn parse_line(line: &str) -> Option<Rule> {
 
     // Ignore rules in unsupported formats.
     const UNSUPPORTED_SYNTAX: &[&str] =
-        &["#@#", "#$#", "#?#", "#@?#", "#$?#", "#$@?#", "#%#", "##+js"];
+        &["#@#", "#$#", "#?#", "#@?#", "#$?#", "#$@?#", "#%#", "##+js", "]##"];
     if UNSUPPORTED_SYNTAX.iter().any(|unsupported| line.contains(unsupported)) {
         debug!("Ignoring rule due to unsupported syntax:");
         debug!("    {line}");
@@ -864,6 +864,17 @@ mod tests {
         let mut expected = Rule::new("bad.js$");
         expected.resource_types = ResourceTypes::SCRIPT;
         assert_eq!(parse_line(rule), Some(expected));
+    }
+
+    #[test]
+    fn ignore_css_modifier_filter() {
+        // NOTE: This format seems to be a method to apply modifiers to CSS filters,
+        // however it is very rarely used. It is used numerous times in AdGuard's
+        // `filter_13_Turkish`, but otherwise only appears once in `filter_4_Social`. So
+        // support is unnecessary.
+
+        let rule = "[$domain=/example\\d+\\.com/]##.bad";
+        assert_eq!(parse_line(rule), None);
     }
 
     #[test]
